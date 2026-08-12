@@ -1,7 +1,11 @@
 <resources>
-    <style name="Theme.MystecetusNarrator" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.MystecetusNarrator" parent="Theme.Material3.Dark.NoActionBar">
         <item name="colorPrimary">@color/ocean</item>
-        <item name="colorSecondary">@color/navy</item>
+        <item name="colorSecondary">@color/ocean</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="android:colorBackground">@color/navy</item>
+        <item name="android:navigationBarColor">@color/navy</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:statusBarColor">@color/navy</item>
