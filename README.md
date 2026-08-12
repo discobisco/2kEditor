@@ -7,12 +7,14 @@ Native Android app for creating standardized visual-detection narratives from My
 - Select multiple screenshots or take a photograph with the phone camera.
 - Bundled on-device ML Kit OCR; narrative generation does not require a server.
 - Row-aware OCR: select the intended V-number, then the reader matches that row to its table headers across multiple photographs.
+- Detection dropdown includes **All detections** plus every V-number found. All mode generates each captured detection as a separate labeled narrative.
 - Conservative extraction: ambiguous values remain blank instead of being guessed.
 - Reviewable manual form covering initial detection, counts, behavior, CPA, final detection, mitigation, and piling status.
 - Required-field validation before generation.
 - Editable result with copy, share, and local save controls.
 - Detection history keyed by V-number.
 - Persistent reminder during processing and on the result screen: **Make an effort line for the start and end of the detection.**
+- Dark high-contrast interface with Android navigation-bar inset handling.
 
 ## Build
 
