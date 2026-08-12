@@ -27,7 +27,7 @@ public final class NarrativeGeneratorTest {
         String output = NarrativeGenerator.generate(r);
         assertTrue(output.startsWith("At 03:44 UTC, a pod of 6 short-beaked common dolphins was detected"));
         assertTrue(output.contains("The animals were observed bow riding"));
-        assertTrue(output.endsWith("requested."));
+        assertTrue(output.endsWith("during the detection."));
     }
 
     @Test public void identifiesMissingRequiredFields() {
