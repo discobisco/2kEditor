@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/foam">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/navy"
+        android:padding="18dp"
+        android:text="Mystecetus Narrative Generator"
+        android:textColor="@android:color/white"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="8dp">
+            <Button android:id="@+id/photoButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Choose photos" />
+            <Button android:id="@+id/cameraButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Take photo" />
+            <Button android:id="@+id/clearButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="New / Clear" />
+            <Button android:id="@+id/historyButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="History" />
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <TextView
+        android:id="@+id/reminderText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:background="@color/warning"
+        android:padding="12dp"
+        android:text="REMINDER: Make an effort line for the start and end of the detection."
+        android:textColor="#5C4400"
+        android:textStyle="bold" />
+
+    <ProgressBar android:id="@+id/progress" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" />
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:id="@+id/formContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp" />
+    </ScrollView>
+
+    <Button android:id="@+id/generateButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_margin="10dp" android:text="Generate narrative" android:textStyle="bold" />
+</LinearLayout>
