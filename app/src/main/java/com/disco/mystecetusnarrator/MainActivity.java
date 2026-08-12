@@ -105,35 +105,44 @@ public final class MainActivity extends AppCompatActivity {
         binding.reminderText.setText("PROCESSING PHOTOS — REMINDER: Make an effort line for the start and end of the detection.");
 
         TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
-        StringBuilder allText = new StringBuilder(record.get("rawOcr"));
-        List<String> failures = new ArrayList<>();
+        List<StructuredOcrExtractor.Page> pages = Collections.synchronizedList(new ArrayList<>());
+        List<String> failures = Collections.synchronizedList(new ArrayList<>());
         AtomicInteger remaining = new AtomicInteger(uris.size());
         for (Uri uri : uris) {
             try {
                 InputImage image = InputImage.fromFilePath(this, uri);
                 recognizer.process(image)
-                    .addOnSuccessListener(text -> allText.append("\n\n--- PHOTO ---\n").append(text.getText()))
+                    .addOnSuccessListener(text -> pages.add(StructuredOcrExtractor.Page.from(text)))
                     .addOnFailureListener(error -> failures.add(error.getMessage() == null ? "Unreadable photo" : error.getMessage()))
                     .addOnCompleteListener(task -> {
                         if (remaining.decrementAndGet() == 0) {
                             recognizer.close();
-                            finishOcr(allText.toString(), failures);
+                            chooseDetectionAndFinish(pages, failures);
                         }
                     });
             } catch (Exception error) {
                 failures.add(error.getMessage() == null ? "Unreadable photo" : error.getMessage());
-                if (remaining.decrementAndGet() == 0) { recognizer.close(); finishOcr(allText.toString(), failures); }
+                if (remaining.decrementAndGet() == 0) { recognizer.close(); chooseDetectionAndFinish(pages, failures); }
             }
         }
     }
 
-    private void finishOcr(String rawText, List<String> failures) {
-        OcrFieldExtractor.Result result = OcrFieldExtractor.extract(rawText);
+    private void chooseDetectionAndFinish(List<StructuredOcrExtractor.Page> pages, List<String> failures) {
+        runOnUiThread(() -> {
+            List<String> ids = StructuredOcrExtractor.findDetectionIds(pages);
+            String entered = record.get("vNumber").toUpperCase();
+            if (!entered.isEmpty() && ids.contains(entered)) { finishOcr(pages, failures, entered); return; }
+            if (ids.size() == 1) { finishOcr(pages, failures, ids.get(0)); return; }
+            if (ids.isEmpty()) { stopProcessing(); new AlertDialog.Builder(this).setTitle("No detection row found").setMessage("Enter the V-number manually, then select the photos again.").setPositiveButton("OK", null).show(); return; }
+            new AlertDialog.Builder(this).setTitle("Which detection should be read?").setItems(ids.toArray(new String[0]), (d, which) -> finishOcr(pages, failures, ids.get(which))).setCancelable(false).show();
+        });
+    }
+
+    private void finishOcr(List<StructuredOcrExtractor.Page> pages, List<String> failures, String targetId) {
+        StructuredOcrExtractor.Result result = StructuredOcrExtractor.extract(pages, targetId);
         mergeNonBlank(record, result.record);
         fillForm(record);
-        binding.progress.setVisibility(View.GONE);
-        binding.generateButton.setEnabled(true);
-        binding.reminderText.setText("REMINDER: Make an effort line for the start and end of the detection.");
+        stopProcessing();
         List<String> messages = new ArrayList<>(result.warnings);
         if (!failures.isEmpty()) messages.add(failures.size() + " photo(s) could not be read.");
         new AlertDialog.Builder(this)
@@ -141,6 +150,12 @@ public final class MainActivity extends AppCompatActivity {
             .setMessage(String.join("\n\n", messages))
             .setPositiveButton("Review values", null)
             .show();
+    }
+
+    private void stopProcessing() {
+        binding.progress.setVisibility(View.GONE);
+        binding.generateButton.setEnabled(true);
+        binding.reminderText.setText("REMINDER: Make an effort line for the start and end of the detection.");
     }
 
     private void generate() {
