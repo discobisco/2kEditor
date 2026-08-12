@@ -30,6 +30,28 @@ public final class NarrativeGeneratorTest {
         assertTrue(output.endsWith("during the detection."));
     }
 
+    @Test public void generatesCpaDuringFinalDetectionReferenceFormat() {
+        DetectionRecord r = new DetectionRecord();
+        r.set("initialTime", "12:55");
+        r.set("species", "short-beaked common dolphin");
+        r.set("bestCount", "8");
+        r.set("initialDistance", "688");
+        r.set("initialPosition", "starboard bow");
+        r.set("initialBearing", "241 + 01:00");
+        r.set("initialHeading", "241 + 09:00");
+        r.set("behaviors", "traveling with vigorous pace, porpoising, and feeding");
+        r.set("cpaTime", "13:15");
+        r.set("cpaDistance", "565");
+        r.set("finalTime", "13:15");
+        r.set("finalDistance", "565");
+        r.set("finalPosition", "bow");
+        r.set("finalBearing", "133 + 12:00");
+        r.set("finalHeading", "133 + 09:30");
+        r.set("separationOutcome", "did not enter the separation distance");
+        r.set("pilingStatus", "No active piling during the detection");
+        assertEquals("At 12:55 UTC, a pod of 8 short-beaked common dolphins was detected 688 meters off the starboard bow at a bearing of 241 + 01:00 o'clock with a heading of 241 + 09:00 o'clock. The animals were observed traveling with vigorous pace, porpoising, and feeding. Closest point of approach to the Rana Miller was at 13:15 UTC, during final detection, 565 meters off the bow at a bearing of 133 + 12:00 o'clock with a heading of 133 + 09:30 o'clock. No vessel strike avoidance was requested because the animals did not enter the separation distance. No active piling during the detection, no mitigation required or requested.", NarrativeGenerator.generate(r));
+    }
+
     @Test public void identifiesMissingRequiredFields() {
         assertEquals(8, NarrativeGenerator.missingRequired(new DetectionRecord()).size());
     }
