@@ -231,10 +231,16 @@ public final class MainActivity extends AppCompatActivity {
         syncFromForm();
         List<String> missing = NarrativeGenerator.missingRequired(record);
         if (!missing.isEmpty()) {
-            new AlertDialog.Builder(this).setTitle("Required values are missing")
-                .setMessage(String.join("\n", missing)).setPositiveButton("Return to form", null).show();
+            new AlertDialog.Builder(this).setTitle("Draft contains missing values")
+                .setMessage("The narrative will still generate with markers for:\n\n" + String.join("\n", missing))
+                .setPositiveButton("Generate draft", (d, w) -> generateCurrentDraft())
+                .setNegativeButton("Return to form", null).show();
             return;
         }
+        generateCurrentDraft();
+    }
+
+    private void generateCurrentDraft() {
         binding.reminderText.setText("GENERATING — REMINDER: Make an effort line for the start and end of the detection.");
         AlertDialog processing = new AlertDialog.Builder(this)
             .setTitle("Generating narrative")
@@ -259,15 +265,15 @@ public final class MainActivity extends AppCompatActivity {
             List<String> missing = NarrativeGenerator.missingRequired(item.getValue());
             if (!missing.isEmpty()) {
                 incomplete.add(item.getKey() + " is missing:\n  • " + String.join("\n  • ", missing));
-                continue;
             }
             if (output.length() > 0) output.append("\n\n");
             output.append(item.getKey()).append("\n").append(NarrativeGenerator.generate(item.getValue()));
         }
         if (!incomplete.isEmpty()) {
             new AlertDialog.Builder(this).setTitle("Some detections need review")
-                .setMessage(String.join("\n", incomplete) + "\n\nChoose each one from the dropdown and complete its missing values.")
-                .setPositiveButton(output.length() == 0 ? "Return" : "Show completed", (d, w) -> { if (output.length() > 0) showResult(output.toString()); }).show();
+                .setMessage(String.join("\n\n", incomplete) + "\n\nDrafts will contain [MISSING] markers instead of invented values.")
+                .setPositiveButton("Generate all drafts", (d, w) -> showResult(output.toString()))
+                .setNegativeButton("Review fields", null).show();
         } else showResult(output.toString());
     }
 
