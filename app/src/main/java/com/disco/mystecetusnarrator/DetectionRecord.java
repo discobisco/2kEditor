@@ -19,6 +19,7 @@ public final class DetectionRecord {
         LABELS.put("initialHeading", "Initial heading (example: 188 + 1:00)");
         LABELS.put("pathRelation", "Relationship to vessel path");
         LABELS.put("behaviors", "Observed behaviors");
+        LABELS.put("separationOutcome", "Separation distance outcome");
         LABELS.put("cpaTime", "CPA time (UTC)");
         LABELS.put("cpaDistance", "CPA distance (meters)");
         LABELS.put("cpaPosition", "CPA relative position");
