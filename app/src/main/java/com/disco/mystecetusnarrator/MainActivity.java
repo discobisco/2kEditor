@@ -257,7 +257,10 @@ public final class MainActivity extends AppCompatActivity {
         List<String> incomplete = new ArrayList<>();
         for (Map.Entry<String, DetectionRecord> item : capturedRecords.entrySet()) {
             List<String> missing = NarrativeGenerator.missingRequired(item.getValue());
-            if (!missing.isEmpty()) { incomplete.add(item.getKey() + " (" + missing.size() + " missing required fields)"); continue; }
+            if (!missing.isEmpty()) {
+                incomplete.add(item.getKey() + " is missing:\n  • " + String.join("\n  • ", missing));
+                continue;
+            }
             if (output.length() > 0) output.append("\n\n");
             output.append(item.getKey()).append("\n").append(NarrativeGenerator.generate(item.getValue()));
         }
