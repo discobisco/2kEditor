@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.MystecetusNarrator" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/ocean</item>
+        <item name="colorSecondary">@color/navy</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/navy</item>
+    </style>
+</resources>
