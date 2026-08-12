@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -19,6 +21,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.disco.mystecetusnarrator.databinding.ActivityMainBinding;
 import com.google.android.material.textfield.TextInputLayout;
@@ -40,6 +44,9 @@ public final class MainActivity extends AppCompatActivity {
     private DetectionRecord record = new DetectionRecord();
     private HistoryStore history;
     private Uri pendingCameraUri;
+    private final LinkedHashMap<String, DetectionRecord> capturedRecords = new LinkedHashMap<>();
+    private boolean selectingSpinner;
+    private static final String ALL_DETECTIONS = "All detections";
 
     private final ActivityResultLauncher<String> choosePhotos = registerForActivityResult(
         new ActivityResultContracts.GetMultipleContents(), uris -> { if (uris != null && !uris.isEmpty()) processImages(uris); });
@@ -55,6 +62,11 @@ public final class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         history = new HistoryStore(this);
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (view, insets) -> {
+            int bottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+            view.setPadding(view.getPaddingLeft(), view.getPaddingTop(), view.getPaddingRight(), bottom);
+            return insets;
+        });
         buildForm();
         bindActions();
     }
@@ -78,9 +90,33 @@ public final class MainActivity extends AppCompatActivity {
     private void bindActions() {
         binding.photoButton.setOnClickListener(v -> choosePhotos.launch("image/*"));
         binding.cameraButton.setOnClickListener(v -> requestCamera());
-        binding.clearButton.setOnClickListener(v -> { record = new DetectionRecord(); fillForm(record); });
+        binding.clearButton.setOnClickListener(v -> {
+            record = new DetectionRecord();
+            capturedRecords.clear();
+            binding.detectionSpinner.setVisibility(View.GONE);
+            binding.formContainer.setVisibility(View.VISIBLE);
+            binding.generateButton.setText("Generate narrative");
+            fillForm(record);
+        });
         binding.generateButton.setOnClickListener(v -> generate());
         binding.historyButton.setOnClickListener(v -> showHistory());
+        binding.detectionSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (selectingSpinner) return;
+                if (binding.formContainer.getVisibility() == View.VISIBLE && record != null) syncFromForm();
+                String selected = parent.getItemAtPosition(position).toString();
+                if (selected.equals(ALL_DETECTIONS)) {
+                    binding.formContainer.setVisibility(View.GONE);
+                    binding.generateButton.setText("Generate all narratives separately");
+                } else {
+                    binding.formContainer.setVisibility(View.VISIBLE);
+                    binding.generateButton.setText("Generate narrative");
+                    record = capturedRecords.get(selected);
+                    if (record != null) fillForm(record);
+                }
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
     }
 
     private void requestCamera() {
@@ -130,12 +166,41 @@ public final class MainActivity extends AppCompatActivity {
     private void chooseDetectionAndFinish(List<StructuredOcrExtractor.Page> pages, List<String> failures) {
         runOnUiThread(() -> {
             List<String> ids = StructuredOcrExtractor.findDetectionIds(pages);
-            String entered = record.get("vNumber").toUpperCase();
-            if (!entered.isEmpty() && ids.contains(entered)) { finishOcr(pages, failures, entered); return; }
-            if (ids.size() == 1) { finishOcr(pages, failures, ids.get(0)); return; }
             if (ids.isEmpty()) { stopProcessing(); new AlertDialog.Builder(this).setTitle("No detection row found").setMessage("Enter the V-number manually, then select the photos again.").setPositiveButton("OK", null).show(); return; }
-            new AlertDialog.Builder(this).setTitle("Which detection should be read?").setItems(ids.toArray(new String[0]), (d, which) -> finishOcr(pages, failures, ids.get(which))).setCancelable(false).show();
+            finishAllOcr(pages, failures, ids);
         });
+    }
+
+    private void finishAllOcr(List<StructuredOcrExtractor.Page> pages, List<String> failures, List<String> ids) {
+        capturedRecords.clear();
+        List<String> warnings = new ArrayList<>();
+        for (String id : ids) {
+            StructuredOcrExtractor.Result result = StructuredOcrExtractor.extract(pages, id);
+            capturedRecords.put(id, result.record);
+            warnings.addAll(result.warnings);
+        }
+        List<String> choices = new ArrayList<>();
+        choices.add(ALL_DETECTIONS);
+        choices.addAll(ids);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, choices);
+        selectingSpinner = true;
+        binding.detectionSpinner.setAdapter(adapter);
+        binding.detectionSpinner.setVisibility(View.VISIBLE);
+        binding.detectionSpinner.setSelection(ids.size() == 1 ? 1 : 0);
+        selectingSpinner = false;
+        if (ids.size() == 1) {
+            record = capturedRecords.get(ids.get(0));
+            fillForm(record);
+            binding.formContainer.setVisibility(View.VISIBLE);
+            binding.generateButton.setText("Generate narrative");
+        } else {
+            binding.formContainer.setVisibility(View.GONE);
+            binding.generateButton.setText("Generate all narratives separately");
+        }
+        stopProcessing();
+        String message = ids.size() + " separate detection(s) captured: " + String.join(", ", ids) + ".\n\nUse the dropdown to review one detection or generate all separately.";
+        if (!failures.isEmpty()) message += "\n\n" + failures.size() + " photo(s) could not be read.";
+        new AlertDialog.Builder(this).setTitle("Photo extraction complete").setMessage(message).setPositiveButton("Review", null).show();
     }
 
     private void finishOcr(List<StructuredOcrExtractor.Page> pages, List<String> failures, String targetId) {
@@ -159,6 +224,10 @@ public final class MainActivity extends AppCompatActivity {
     }
 
     private void generate() {
+        if (binding.detectionSpinner.getVisibility() == View.VISIBLE && binding.detectionSpinner.getSelectedItem() != null && binding.detectionSpinner.getSelectedItem().toString().equals(ALL_DETECTIONS)) {
+            generateAll();
+            return;
+        }
         syncFromForm();
         List<String> missing = NarrativeGenerator.missingRequired(record);
         if (!missing.isEmpty()) {
@@ -181,6 +250,22 @@ public final class MainActivity extends AppCompatActivity {
                 showResult(narrative);
             });
         }).start();
+    }
+
+    private void generateAll() {
+        StringBuilder output = new StringBuilder();
+        List<String> incomplete = new ArrayList<>();
+        for (Map.Entry<String, DetectionRecord> item : capturedRecords.entrySet()) {
+            List<String> missing = NarrativeGenerator.missingRequired(item.getValue());
+            if (!missing.isEmpty()) { incomplete.add(item.getKey() + " (" + missing.size() + " missing required fields)"); continue; }
+            if (output.length() > 0) output.append("\n\n");
+            output.append(item.getKey()).append("\n").append(NarrativeGenerator.generate(item.getValue()));
+        }
+        if (!incomplete.isEmpty()) {
+            new AlertDialog.Builder(this).setTitle("Some detections need review")
+                .setMessage(String.join("\n", incomplete) + "\n\nChoose each one from the dropdown and complete its missing values.")
+                .setPositiveButton(output.length() == 0 ? "Return" : "Show completed", (d, w) -> { if (output.length() > 0) showResult(output.toString()); }).show();
+        } else showResult(output.toString());
     }
 
     private void showResult(String narrative) {
