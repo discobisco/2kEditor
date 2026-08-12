@@ -16,14 +16,14 @@ public final class NarrativeGenerator {
 
     public static String generate(DetectionRecord r) {
         StringBuilder n = new StringBuilder();
-        n.append("At ").append(utc(r.get("initialTime"))).append(", ");
+        n.append("At ").append(utc(required(r, "initialTime"))).append(", ");
         if (!blank(r.get("bestCount"))) n.append("a ").append(groupWord(r.get("species"))).append(" of ").append(r.get("bestCount")).append(' ');
-        else n.append(articleFor(r.get("species"))).append(' ');
-        n.append(speciesForCount(r.get("species"), r.get("bestCount"))).append(" was detected ")
-            .append(distance(r.get("initialDistance"))).append(' ')
+        else n.append(blank(r.get("species")) ? "a" : articleFor(r.get("species"))).append(' ');
+        n.append(speciesForCount(required(r, "species"), r.get("bestCount"))).append(" was detected ")
+            .append(distance(required(r, "initialDistance"))).append(' ')
             .append(relative(r.get("initialPosition")))
-            .append("at a bearing of ").append(clock(r.get("initialBearing")))
-            .append(" with a heading of ").append(clock(r.get("initialHeading")));
+            .append("at a bearing of ").append(clock(required(r, "initialBearing")))
+            .append(" with a heading of ").append(clock(required(r, "initialHeading")));
         if (!blank(r.get("pathRelation"))) n.append(", ").append(lowerFirst(r.get("pathRelation")));
         n.append(". ");
 
@@ -43,11 +43,11 @@ public final class NarrativeGenerator {
             n.append(". ");
         }
 
-        n.append("The final detection was at ").append(utc(r.get("finalTime"))).append(' ')
-            .append(distance(r.get("finalDistance"))).append(' ')
+        n.append("The final detection was at ").append(utc(required(r, "finalTime"))).append(' ')
+            .append(distance(required(r, "finalDistance"))).append(' ')
             .append(relative(r.get("finalPosition")))
-            .append("with a bearing of ").append(clock(r.get("finalBearing")))
-            .append(" and a heading of ").append(clock(r.get("finalHeading"))).append(". ");
+            .append("with a bearing of ").append(clock(required(r, "finalBearing")))
+            .append(" and a heading of ").append(clock(required(r, "finalHeading"))).append(". ");
 
         String request = r.get("mitigationRequest");
         String response = r.get("mitigationResponse");
@@ -77,12 +77,16 @@ public final class NarrativeGenerator {
         if (blank(count) || "1".equals(count) || species.toLowerCase(Locale.US).endsWith("s")) return species;
         return species + "s";
     }
+    private static String required(DetectionRecord r, String key) {
+        String value = r.get(key);
+        return blank(value) ? "[MISSING: " + DetectionRecord.LABELS.get(key) + "]" : value;
+    }
     private static String animalWord(String count) { return "1".equals(count.trim()) ? "animal" : "animals"; }
     private static String articleFor(String s) { return "aeiou".indexOf(Character.toLowerCase(s.charAt(0))) >= 0 ? "an" : "a"; }
-    private static String distance(String s) { return s.toLowerCase(Locale.US).contains("meter") ? s : s + " meters"; }
+    private static String distance(String s) { return s.startsWith("[MISSING:") ? s : (s.toLowerCase(Locale.US).contains("meter") ? s : s + " meters"); }
     private static String relative(String s) { return blank(s) ? "" : (s.toLowerCase(Locale.US).startsWith("off ") ? s + " " : "off the " + s + " "); }
-    private static String utc(String s) { return s.toUpperCase(Locale.US).contains("UTC") ? s : s + " UTC"; }
-    private static String clock(String s) { return s.toLowerCase(Locale.US).contains("o'clock") ? s : s + " o'clock"; }
+    private static String utc(String s) { return s.startsWith("[MISSING:") ? s : (s.toUpperCase(Locale.US).contains("UTC") ? s : s + " UTC"); }
+    private static String clock(String s) { return s.startsWith("[MISSING:") ? s : (s.toLowerCase(Locale.US).contains("o'clock") ? s : s + " o'clock"); }
     private static String stripDegrees(String s) { return s.replace("°", "").trim(); }
     private static String normalizeBehavior(String s) { String t = lowerFirst(s.trim()); return t.startsWith("observed ") ? t.substring(9) : t; }
     private static String ensureSentence(String s) { String t = Character.toUpperCase(s.charAt(0)) + s.substring(1); return t.endsWith(".") ? t : t + "."; }
