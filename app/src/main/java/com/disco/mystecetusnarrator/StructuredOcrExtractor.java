@@ -57,6 +57,7 @@ public final class StructuredOcrExtractor {
         HEADERS.put("mitigationResponse", Arrays.asList("mitigation response"));
         HEADERS.put("responseTime", Arrays.asList("time of mitigation response"));
         HEADERS.put("behaviors", Arrays.asList("behavior notes", "behavior"));
+        HEADERS.put("separationOutcome", Arrays.asList("strike avoidance mitigation notes"));
         HEADERS.put("pathRelation", Arrays.asList("strike avoidance mitigation notes"));
         HEADERS.put("pilingStatus", Arrays.asList("other mitigation notes"));
     }
@@ -152,6 +153,9 @@ public final class StructuredOcrExtractor {
         if (lower.contains("porpois")) append(r, "behaviors", "porpoising");
         if (lower.contains("feeding")) append(r, "behaviors", "feeding");
         if (lower.contains("travel")) append(r, "behaviors", "traveling");
+        if (lower.contains("did not enter") && lower.contains("separation")) r.set("separationOutcome", "did not enter the separation distance");
+        else if (lower.contains("remain") && lower.contains("separation")) r.set("separationOutcome", "remained within the separation distance");
+        else if (lower.contains("enter") && lower.contains("separation")) r.set("separationOutcome", "entered the separation distance");
         if (lower.contains("no active piling")) r.set("pilingStatus", "No piling mitigation was needed as there was no active piling during the detection");
         if (lower.contains("detection delay") && !r.get("pilingStatus").toLowerCase(Locale.US).contains("detection delay")) append(r, "pilingStatus", "piling was under a detection delay");
     }
